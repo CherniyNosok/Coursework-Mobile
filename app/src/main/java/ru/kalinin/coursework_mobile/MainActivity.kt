@@ -1,11 +1,8 @@
 package ru.kalinin.coursework_mobile
 
-import ads_mobile_sdk.h2
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,21 +13,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,31 +42,99 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import ru.kalinin.coursework_mobile.ui.theme.CourseworkMobileTheme
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // В реальном проекте это делается через Dependency Injection
-        val repository = WeatherRepository(RetrofitClient.cityService, RetrofitClient.weatherService)
+        val repository = WeatherRepository(
+            cityApi = RetrofitClient.cityService,
+            weatherApi = RetrofitClient.weatherService
+        )
+
         val viewModelFactory = WeatherViewModelFactory(repository)
         val viewModel = ViewModelProvider(this, viewModelFactory)[WeatherViewModel::class.java]
 
         setContent {
             MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    WeatherScreen(viewModel)
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    WeatherScreen(viewModel = viewModel)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WeatherScreen(viewModel: WeatherViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    var searchQuery by remember { mutableStateOf("") }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Прогноз погоды") },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Поиск города") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = { viewModel.fetchWeather(searchQuery) }) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "Поиск")
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            when (val state = uiState) {
+                is WeatherUiState.Empty -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Введите город, чтобы узнать погоду")
+                    }
+                }
+                is WeatherUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is WeatherUiState.Success -> {
+                    WeatherDashboard(state = state)
+                }
+                is WeatherUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
@@ -73,154 +142,87 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun WeatherScreen(viewModel: WeatherViewModel) {
-    // Собираем состояние из StateFlow
-    val uiState by viewModel.uiState.collectAsState()
-    var cityInput by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+fun WeatherDashboard(state: WeatherUiState.Success) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Поле ввода и кнопка
-        OutlinedTextField(
-            value = cityInput,
-            onValueChange = { cityInput = it },
-            label = { Text("Введите город") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = { viewModel.fetchWeather(cityInput) },
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            Text("Узнать погоду")
+        item {
+            CurrentWeatherCard(state)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        item {
+            Text("Следующие 24 часа", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(state.hourlyForecast) { hour ->
+                    HourlyItem(hour)
+                }
+            }
+        }
 
-        // Обработка состояний
-        when (val state = uiState) {
-            is WeatherUiState.Empty -> {
-                Text("Введите название города, чтобы начать")
-            }
-            is WeatherUiState.Loading -> {
-                CircularProgressIndicator()
-            }
-            is WeatherUiState.Success -> {
-                WeatherDisplay(state)
-            }
-            is WeatherUiState.Error -> {
-                Text(text = state.message, color = Color.Red)
-            }
+        item {
+            Text("Прогноз", style = MaterialTheme.typography.titleLarge)
+        }
+
+        items(state.dailyForecast) { day ->
+            DailyItem(day)
         }
     }
 }
 
 @Composable
-fun WeatherDisplay(state: WeatherUiState.Success) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = state.city, style = MaterialTheme.typography.headlineLarge)
-        Text(
-            text = "${state.temperature}°C",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Прогноз на ближайшее время:", style = MaterialTheme.typography.headlineSmall)
-
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            items(state.forecast) { (time, temp) ->
-                ForecastItem(time, temp)
-            }
-        }
-    }
-}
-
-@Composable
-fun ForecastItem(time: String, temp: Double) {
+fun CurrentWeatherCard(state: WeatherUiState.Success) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(state.city, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "${state.currentTemp}°",
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text("Ветер: ${state.windSpeed} км/ч (${getWindDirection(state.windDir)})")
+        }
+    }
+}
+
+@Composable
+fun HourlyItem(hour: HourlyEntry) {
+    Card(
+        modifier = Modifier.width(80.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(hour.time.substringAfter("T"), style = MaterialTheme.typography.bodySmall)
+            Text("${hour.temp}°", fontWeight = FontWeight.Bold)
+            Text(hour.code.toWeatherEmoji(), style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+@Composable
+fun DailyItem(day: DailyEntry) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Форматируем строку времени (убираем лишние секунды/даты для красоты)
-            Text(text = time.substringAfter("T"))
-            Text(text = "$temp°C", fontWeight = FontWeight.Bold)
+            Text(formatDisplayDate(day.date), modifier = Modifier.weight(1f))
+            Text("❄️ ${day.minTemp}°", color = Color.Blue)
+            Spacer(Modifier.width(8.dp))
+            Text("🔥 ${day.maxTemp}°", color = Color.Red)
         }
     }
 }
 
-sealed class WeatherUiState {
-    object Empty : WeatherUiState() // Начальное состояние
-    object Loading : WeatherUiState() // Процесс загрузки
-    data class Success(
-        val city: String,
-        val temperature: Double,
-        val forecast: List<Pair<String, Double>> // Время и температура
-    ) : WeatherUiState()
-    data class Error(val message: String) : WeatherUiState()
-}
-
-class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() {
-
-    // Внутреннее состояние (мутабельное)
-    private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Empty)
-
-    // Внешнее состояние для UI (только для чтения)
-    val uiState: StateFlow<WeatherUiState> = _uiState
-
-    fun fetchWeather(cityName: String) {
-        if (cityName.isBlank()) {
-            _uiState.value = WeatherUiState.Error("Введите название города")
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = WeatherUiState.Loading
-
-            val result = repository.fetchWeather(cityName)
-
-            result.onSuccess { (cityDto, weatherDto) ->
-                // Маппим данные из DTO в удобный для UI формат
-                // Возьмем, например, первый элемент из списка температур как текущую
-                val currentTemp = weatherDto.hourly.temperatures.firstOrNull() ?: 0.0
-
-                // Создаем список пар (Время - Температура)
-                val forecastData = weatherDto.hourly.time.zip(weatherDto.hourly.temperatures)
-
-                _uiState.value = WeatherUiState.Success(
-                    city = "${cityDto.name}, ${cityDto.country}",
-                    temperature = currentTemp,
-                    forecast = forecastData
-                )
-            }.onFailure { exception ->
-                _uiState.value = WeatherUiState.Error(
-                    exception.message ?: "Произошла неизвестная ошибка"
-                )
-            }
-        }
-    }
-}
-
-class WeatherViewModelFactory(private val repository: WeatherRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(WeatherViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return WeatherViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}

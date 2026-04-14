@@ -6,7 +6,6 @@ class WeatherRepository(
     private val cityApi: CityApiService,
     private val weatherApi: WeatherApiService
 ) {
-    // Используем Result, чтобы удобно обрабатывать ошибки во ViewModel
     suspend fun fetchWeather(cityName: String): Result<Pair<CityDto, WeatherDto>> {
         return try {
             val cities = cityApi.getCityCoordinates(cityName)
@@ -18,7 +17,7 @@ class WeatherRepository(
             val city = cities.first()
             val weather = weatherApi.getWeather(city.latitude, city.longitude)
 
-            Result.success(city to weather) // "to" создает Pair
+            Result.success(city to weather)
         } catch (e: Exception) {
             e.message?.let { Log.e("WEATHER_DEBUG", it) }
             e.printStackTrace()
