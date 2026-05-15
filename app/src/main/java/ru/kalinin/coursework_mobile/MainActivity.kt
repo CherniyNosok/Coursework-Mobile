@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 
 class MainActivity : ComponentActivity() {
@@ -76,12 +79,13 @@ class MainActivity : ComponentActivity() {
 fun WeatherScreen(viewModel: WeatherViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
+//    var searchQuery by remember { mutableStateOf("") }
+    var selectedCity by remember { mutableStateOf<CityConfig?>(null) }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Прогноз погоды") },
+                title = { Text(stringResource(R.string.weather_forecast_string)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -98,25 +102,47 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Поиск города") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                trailingIcon = {
-                    IconButton(onClick = { viewModel.fetchWeather(searchQuery) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Поиск")
-                    }
-                }
+//            OutlinedTextField(
+//                value = searchQuery,
+//                onValueChange = { searchQuery = it },
+//                label = { Text("Поиск города") },
+//                modifier = Modifier.fillMaxWidth(),
+//                singleLine = true,
+//                trailingIcon = {
+//                    IconButton(onClick = { viewModel.fetchWeather(searchQuery) }) {
+//                        Icon(imageVector = Icons.Default.Search, contentDescription = "Поиск")
+//                    }
+//                }
+//            )
+
+            Text(
+                stringResource(R.string.select_a_city_string),
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.labelLarge
             )
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(predefinedCities) { city ->
+                    FilterChip(
+                        selected = selectedCity == city,
+                        onClick = {
+                            selectedCity = city
+                            viewModel.fetchWeather(city)
+                        },
+                        label = { Text(stringResource(city.displayName)) }
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             when (val state = uiState) {
                 is WeatherUiState.Empty -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Введите город, чтобы узнать погоду")
+                        Text(stringResource(R.string.select_city_string))
                     }
                 }
                 is WeatherUiState.Loading -> {
@@ -153,7 +179,7 @@ fun WeatherDashboard(state: WeatherUiState.Success) {
         }
 
         item {
-            Text("Следующие 24 часа", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.next_24_hours_string), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(state.hourlyForecast) { hour ->
@@ -163,7 +189,7 @@ fun WeatherDashboard(state: WeatherUiState.Success) {
         }
 
         item {
-            Text("Прогноз", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.forecast_string), style = MaterialTheme.typography.titleLarge)
         }
 
         items(state.dailyForecast) { day ->
@@ -182,13 +208,13 @@ fun CurrentWeatherCard(state: WeatherUiState.Success) {
             modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(state.city, style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(state.city), style = MaterialTheme.typography.headlineSmall)
             Text(
-                "${state.currentTemp}°",
+                "${state.currentTemp}°C",
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold
             )
-            Text("Ветер: ${state.windSpeed} км/ч (${getWindDirection(state.windDir)})")
+            Text("${stringResource(R.string.wind_string)}: ${state.windSpeed} ${stringResource(R.string.speed_string)} (${getWindDirection(state.windDir)})")
         }
     }
 }
@@ -204,7 +230,7 @@ fun HourlyItem(hour: HourlyEntry) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(hour.time.substringAfter("T"), style = MaterialTheme.typography.bodySmall)
-            Text("${hour.temp}°", fontWeight = FontWeight.Bold)
+            Text("${hour.temp}°C", fontWeight = FontWeight.Bold)
             Text(hour.code.toWeatherEmoji(), style = MaterialTheme.typography.titleMedium)
         }
     }
@@ -219,9 +245,9 @@ fun DailyItem(day: DailyEntry) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(formatDisplayDate(day.date), modifier = Modifier.weight(1f))
-            Text("❄️ ${day.minTemp}°", color = Color.Blue)
+            Text("❄️ ${day.minTemp}°C", color = Color.Blue)
             Spacer(Modifier.width(8.dp))
-            Text("🔥 ${day.maxTemp}°", color = Color.Red)
+            Text("🔥 ${day.maxTemp}°C", color = Color.Red)
         }
     }
 }

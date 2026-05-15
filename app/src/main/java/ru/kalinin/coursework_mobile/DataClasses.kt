@@ -1,5 +1,7 @@
 package ru.kalinin.coursework_mobile
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -56,4 +58,15 @@ data class DailyEntry(
     val maxTemp: Double,
     val minTemp: Double,
     val code: Int
+)
+data class CityConfig(
+    @StringRes val displayName: Int,
+    val queryName: String
+)
+val predefinedCities = listOf(
+    CityConfig(R.string.city_moscow, "Moscow"),
+    CityConfig(R.string.city_saint_petersburg, "Saint Petersburg"),
+    CityConfig(R.string.city_novosibirsk, "Novosibirsk"),
+    CityConfig(R.string.city_yekaterinburg, "Yekaterinburg"),
+    CityConfig(R.string.city_vladivostok, "Vladivostok")
 )

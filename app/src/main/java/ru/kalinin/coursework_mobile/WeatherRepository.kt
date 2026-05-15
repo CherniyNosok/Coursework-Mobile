@@ -11,7 +11,7 @@ class WeatherRepository(
             val cities = cityApi.getCityCoordinates(cityName)
 
             if (cities.isEmpty()) {
-                return Result.failure(Exception("Город не найден"))
+                return Result.failure(Exception("City not found"))
             }
 
             val city = cities.first()

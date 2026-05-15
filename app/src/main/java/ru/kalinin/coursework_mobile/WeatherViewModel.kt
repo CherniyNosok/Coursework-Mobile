@@ -1,5 +1,7 @@
 package ru.kalinin.coursework_mobile
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,7 +13,7 @@ sealed class WeatherUiState {
     object Empty : WeatherUiState()
     object Loading : WeatherUiState()
     data class Success(
-        val city: String,
+        val city: Int,
         val currentTemp: Double,
         val windSpeed: Double,
         val windDir: Int,
@@ -26,16 +28,16 @@ class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() 
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Empty)
     val uiState: StateFlow<WeatherUiState> = _uiState
 
-    fun fetchWeather(cityName: String) {
-        if (cityName.isBlank()) {
-            _uiState.value = WeatherUiState.Error("Введите название города")
-            return
-        }
+    fun fetchWeather(cityConfig: CityConfig) {
+//        if (cityName.isBlank()) {
+//            _uiState.value = WeatherUiState.Error("Введите название города")
+//            return
+//        }
 
         viewModelScope.launch {
             _uiState.value = WeatherUiState.Loading
 
-            repository.fetchWeather(cityName)
+            val result = repository.fetchWeather(cityConfig.queryName)
                 .onSuccess { (cityDto, weatherDto) ->
                     val current = weatherDto.current
                     val hourly = weatherDto.hourly
@@ -57,7 +59,7 @@ class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() 
                     }
 
                     _uiState.value = WeatherUiState.Success(
-                        city = "${cityDto.name}, ${cityDto.country}",
+                        city = cityConfig.displayName,
                         currentTemp = current.temperature,
                         windSpeed = current.windSpeed,
                         windDir = current.windDirection,
