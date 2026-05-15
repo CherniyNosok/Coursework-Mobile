@@ -29,10 +29,6 @@ class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() 
     val uiState: StateFlow<WeatherUiState> = _uiState
 
     fun fetchWeather(cityConfig: CityConfig) {
-//        if (cityName.isBlank()) {
-//            _uiState.value = WeatherUiState.Error("Введите название города")
-//            return
-//        }
 
         viewModelScope.launch {
             _uiState.value = WeatherUiState.Loading

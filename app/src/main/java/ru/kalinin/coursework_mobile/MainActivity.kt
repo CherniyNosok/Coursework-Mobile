@@ -79,7 +79,6 @@ class MainActivity : ComponentActivity() {
 fun WeatherScreen(viewModel: WeatherViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-//    var searchQuery by remember { mutableStateOf("") }
     var selectedCity by remember { mutableStateOf<CityConfig?>(null) }
 
     Scaffold(
@@ -101,19 +100,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-
-//            OutlinedTextField(
-//                value = searchQuery,
-//                onValueChange = { searchQuery = it },
-//                label = { Text("Поиск города") },
-//                modifier = Modifier.fillMaxWidth(),
-//                singleLine = true,
-//                trailingIcon = {
-//                    IconButton(onClick = { viewModel.fetchWeather(searchQuery) }) {
-//                        Icon(imageVector = Icons.Default.Search, contentDescription = "Поиск")
-//                    }
-//                }
-//            )
 
             Text(
                 stringResource(R.string.select_a_city_string),
