@@ -1,14 +1,8 @@
-package ru.kalinin.coursework_mobile
+package ru.kalinin.coursework_mobile.data.api
 
-import retrofit2.http.*
-
-interface CityApiService {
-    @GET("city")
-    suspend fun getCityCoordinates(
-        @Query("name") cityName: String,
-        @Header("X-Api-Key") apiKey: String = BuildConfig.X_API_KEY
-    ): List<CityDto>
-}
+import retrofit2.http.GET
+import retrofit2.http.Query
+import ru.kalinin.coursework_mobile.data.model.WeatherDto
 
 interface WeatherApiService {
     @GET("v1/forecast")
@@ -23,4 +17,3 @@ interface WeatherApiService {
         @Query("timezone") timezone: String = "auto",
     ): WeatherDto
 }
-

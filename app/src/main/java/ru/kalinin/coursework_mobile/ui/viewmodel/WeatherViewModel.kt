@@ -1,28 +1,14 @@
-package ru.kalinin.coursework_mobile
+package ru.kalinin.coursework_mobile.ui.viewmodel
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
-sealed class WeatherUiState {
-    object Empty : WeatherUiState()
-    object Loading : WeatherUiState()
-    data class Success(
-        val city: Int,
-        val currentTemp: Double,
-        val windSpeed: Double,
-        val windDir: Int,
-        val weatherCode: Int,
-        val hourlyForecast: List<HourlyEntry>,
-        val dailyForecast: List<DailyEntry>
-    ) : WeatherUiState()
-    data class Error(val message: String) : WeatherUiState()
-}
+import ru.kalinin.coursework_mobile.data.model.CityConfig
+import ru.kalinin.coursework_mobile.data.model.DailyEntry
+import ru.kalinin.coursework_mobile.data.model.HourlyEntry
+import ru.kalinin.coursework_mobile.data.repository.WeatherRepository
 
 class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() {
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Empty)
@@ -51,7 +37,12 @@ class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() 
                     }
 
                     val dailyList = daily.time.indices.map { i ->
-                        DailyEntry(daily.time[i], daily.maxTemps[i], daily.minTemps[i], daily.weatherCodes[i])
+                        DailyEntry(
+                            daily.time[i],
+                            daily.maxTemps[i],
+                            daily.minTemps[i],
+                            daily.weatherCodes[i]
+                        )
                     }
 
                     _uiState.value = WeatherUiState.Success(
@@ -68,15 +59,5 @@ class WeatherViewModel(private val repository: WeatherRepository) : ViewModel() 
                     _uiState.value = WeatherUiState.Error(exception.message ?: "Ошибка сети")
                 }
         }
-    }
-}
-
-class WeatherViewModelFactory(private val repository: WeatherRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(WeatherViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return WeatherViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

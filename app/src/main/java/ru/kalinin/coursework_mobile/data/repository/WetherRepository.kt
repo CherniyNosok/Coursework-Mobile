@@ -1,6 +1,10 @@
-package ru.kalinin.coursework_mobile
+package ru.kalinin.coursework_mobile.data.repository
 
 import android.util.Log
+import ru.kalinin.coursework_mobile.data.api.CityApiService
+import ru.kalinin.coursework_mobile.data.api.WeatherApiService
+import ru.kalinin.coursework_mobile.data.model.CityDto
+import ru.kalinin.coursework_mobile.data.model.WeatherDto
 
 class WeatherRepository(
     private val cityApi: CityApiService,

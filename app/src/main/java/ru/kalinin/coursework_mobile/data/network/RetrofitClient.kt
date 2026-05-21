@@ -1,4 +1,4 @@
-package ru.kalinin.coursework_mobile
+package ru.kalinin.coursework_mobile.data.network
 
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
@@ -6,6 +6,8 @@ import kotlinx.serialization.json.Json
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import ru.kalinin.coursework_mobile.data.api.CityApiService
+import ru.kalinin.coursework_mobile.data.api.WeatherApiService
 
 private val json = Json {
     ignoreUnknownKeys = true
